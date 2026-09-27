@@ -4,31 +4,40 @@ import platform
 import time
 import traceback
 
-import discord
 from discord.ext import commands
 
 from patches.slash_command_try_catch import install_slash_command_try_catch_patch
 from swit.api.logger import Logger
-from swit.bootstrap.setup_hook_step import _load_hooker
 from swit.build_in.get_version import get_swit_version
 from swit.context import set_swit
 from swit.loader.loader import Loader
-from swit.bootstrap.setup_hook_step import _setup_intents
+from swit.setup.setup_hook_step import _setup_intents,_load_hooker
 
 
 class Swit(commands.AutoShardedBot):
-    __slots__ = ["discord_intents", "intents_config", "loader", "registry"]
+
+    INSTANCE = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.INSTANCE is None:
+            cls.INSTANCE = super().__new__(cls)
+        return cls.INSTANCE
+
+    __slots__ = ["discord_intents", "intents_config", "loader","lazyconfig", "registry"]
 
     def __init__(
         self,
         config: dict,
+        lazyconfig: dict | None = None,
         *,
         command_prefix: str = "!",
         debug: bool = False,
     ):
         self.config: dict | None = config
+
         self.logger: Logger | None = Logger(debug=debug)
         self.loader: Loader | None = Loader(self)
+        self.lazyconfig: dict | None = lazyconfig
 
         self.version = get_swit_version()
         self.intents_config: dict = (self.config or {}).get("Discord",{}).get("intents", {})
@@ -119,3 +128,4 @@ class Swit(commands.AutoShardedBot):
 
     def get_swit_config(self):
         return self.config
+

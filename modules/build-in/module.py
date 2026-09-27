@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import discord
+import aiofiles
+import os
+import yaml
 from discord.ext import commands
+from discord.ext import tasks
 
 from swit.api import ModuleManifest, ModuleType
 from swit.api.logger import Logger
+from swit.api.utils.path_api import PathAPI
 from swit.app import Swit
 from swit.loader.loader import Loader
 
@@ -15,6 +19,9 @@ class BuildIn(commands.Cog):
         self.bot = bot
         self.loader: Loader = self.bot.loader
         self.logger: Logger = bot.get_logger()
+
+        self.config_path = PathAPI.join_path("config.yml")
+        self._config_mtime = 0
 
     @commands.command(name="unload")
     async def build_in(
@@ -44,6 +51,14 @@ class BuildIn(commands.Cog):
 
         await msg.edit(content=content)
 
+    @tasks.loop(seconds=0.05)
+    async def reload_main_config(self):
+        mtime = os.stat(self.config_path).st_mtime_ns
+        if mtime <= self._config_mtime:
+            return
+        self._config_mtime = mtime
+        async with aiofiles.open(self.config_path, mode="r") as f:
+            self.bot.config = yaml.safe_load(await f.read())
 
 Manifest = ModuleManifest(
     entry=BuildIn,

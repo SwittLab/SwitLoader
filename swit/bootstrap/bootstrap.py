@@ -37,6 +37,9 @@ def load_config() -> dict:
 
     return config
 
+def load_lazyconfig() -> dict:
+    import lazyconfig
+    return vars(lazyconfig)
 
 async def main():
     ensure_dependencies()
@@ -61,8 +64,15 @@ async def main():
 
     from swit.app import Swit
 
+    # load lazy
+    try:
+        lazyconfig = load_lazyconfig()
+    except ModuleNotFoundError:
+        lazyconfig = None
+
     bot = Swit(
         config=config,
+        lazyconfig=lazyconfig,
         command_prefix=discord_config.get("command_prefix", "!"),
         debug=config.get("Logger", {}).get("debug", False),
     )
